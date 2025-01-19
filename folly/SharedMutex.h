@@ -39,6 +39,12 @@
 #include <folly/synchronization/SanitizeThread.h>
 #include <folly/system/ThreadId.h>
 
+// Adds an attribute.
+#define attr(attr) __attribute((__annotate__(#attr)))
+
+// Tell that the function need to be converted to the coroutine.
+#define non_atomic attr(ltest_nonatomic)
+
 // SharedMutex is a reader-writer lock.  It is small, very fast, scalable
 // on multi-core, and suitable for use when readers or writers may block.
 // Unlike most other reader-writer locks, its throughput with concurrent
@@ -432,11 +438,16 @@ class SharedMutexImpl
     return (state & kHasE) == 0;
   }
 
-  void lock() {
+  non_atomic int lock() {
     WaitForever ctx;
     (void)lockExclusiveImpl(kHasSolo, ctx);
     OwnershipTrackerBase::beginThreadOwnership();
     annotateAcquired(annotate_rwlock_level::wrlock);
+    return 0;
+  }
+
+  void Reset() {
+    state_.store(0);
   }
 
   bool try_lock() {
@@ -466,7 +477,7 @@ class SharedMutexImpl
     return result;
   }
 
-  void unlock() {
+  non_atomic int unlock() {
     annotateReleased(annotate_rwlock_level::wrlock);
     OwnershipTrackerBase::endThreadOwnership();
     // It is possible that we have a left-over kWaitingNotS if the last
@@ -475,6 +486,7 @@ class SharedMutexImpl
     auto state = (state_ &= ~(kWaitingNotS | kPrevDefer | kHasE));
     assert((state & ~(kWaitingAny | kAnnotationCreated)) == 0);
     wakeRegisteredWaiters(state, kWaitingE | kWaitingU | kWaitingS);
+    return 0;
   }
 
   // Managing the token yourself makes unlock_shared a bit faster. If the

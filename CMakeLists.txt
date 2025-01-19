@@ -22,6 +22,8 @@ if (POLICY CMP0057)
   cmake_policy(SET CMP0057 NEW)
 endif()
 
+set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -latomic")
+
 # CMP0075 Include file check macros honor CMAKE_REQUIRED_LIBRARIES
 if(POLICY CMP0075)
   cmake_policy(SET CMP0075 NEW)
@@ -427,6 +429,12 @@ add_library(folly_base OBJECT
   ${folly_base_files}
   ${CMAKE_CURRENT_BINARY_DIR}/folly/folly-config.h
 )
+
+# Dependencies are written explicitly for simplicity
+target_compile_options(folly_base PRIVATE -fpass-plugin=/workspaces/LTest/build/codegen/libYieldPass.so)
+target_link_libraries(folly_base PRIVATE /workspaces/LTest/build/runtime/libruntime.so)
+
+
 if (BUILD_SHARED_LIBS)
   set_property(TARGET folly_base PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
