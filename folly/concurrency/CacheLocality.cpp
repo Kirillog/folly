@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <sstream>
 #include <folly/concurrency/CacheLocality.h>
 
 #ifndef _MSC_VER
@@ -25,7 +26,6 @@
 #include <numeric>
 #include <optional>
 
-#include <fmt/core.h>
 #include <glog/logging.h>
 #include <folly/Indestructible.h>
 #include <folly/Memory.h>
@@ -166,7 +166,9 @@ static size_t parseLeadingNumber(const std::string& line) {
   char* end;
   unsigned long val = strtoul(raw, &end, 10);
   if (end == raw || (*end != ',' && *end != '-' && *end != '\n' && *end != 0)) {
-    throw std::runtime_error(fmt::format("error parsing list '{}'", line));
+    std::stringstream ss;
+    ss << "error parsing list '" << line << "'";
+    throw std::runtime_error(ss.str());
   }
   return val;
 }
@@ -180,8 +182,9 @@ CacheLocality CacheLocality::readFromSysfsTree(
   for (size_t cpu = 0;; ++cpu) {
     std::vector<size_t> levels;
     for (size_t index = 0;; ++index) {
-      auto dir = fmt::format(
-          "/sys/devices/system/cpu/cpu{}/cache/index{}/", cpu, index);
+      std::stringstream ss;
+      ss << "/sys/devices/system/cpu/cpu" << cpu << "/cache/index" << index << "/";
+      auto dir = ss.str();
       auto cacheType = mapping(dir + "type");
       auto equivStr = mapping(dir + "shared_cpu_list");
       if (cacheType.empty() || equivStr.empty()) {
