@@ -39,12 +39,6 @@
 #include <folly/synchronization/SanitizeThread.h>
 #include <folly/system/ThreadId.h>
 
-// Adds an attribute.
-#define attr(attr) __attribute((__annotate__(#attr)))
-
-// Tell that the function need to be converted to the coroutine.
-#define non_atomic attr(ltest_nonatomic)
-
 // SharedMutex is a reader-writer lock.  It is small, very fast, scalable
 // on multi-core, and suitable for use when readers or writers may block.
 // Unlike most other reader-writer locks, its throughput with concurrent
@@ -495,10 +489,11 @@ class SharedMutexImpl
   // can be invalidated with release_token(), which allows to use the tokenless
   // unlock_shared().
 
-  void lock_shared() {
+  non_atomic int lock_shared() {
     WaitForever ctx;
     (void)lockSharedImpl(nullptr, ctx);
     annotateAcquired(annotate_rwlock_level::rdlock);
+    return 0;
   }
 
   void lock_shared(Token& token) {
@@ -557,7 +552,7 @@ class SharedMutexImpl
     return result;
   }
 
-  void unlock_shared() {
+  non_atomic int unlock_shared() {
     annotateReleased(annotate_rwlock_level::rdlock);
 
     auto state = state_.load(std::memory_order_acquire);
@@ -574,6 +569,7 @@ class SharedMutexImpl
       // lock has already been inlined by applyDeferredReaders()
       unlockSharedInline();
     }
+    return 0;
   }
 
   void unlock_shared(Token& token) {
@@ -1045,7 +1041,7 @@ class SharedMutexImpl
   // Performs an exclusive lock, waiting for state_ & waitMask to be
   // zero first
   template <class WaitContext>
-  non_atomic bool lockExclusiveImpl(uint32_t preconditionGoalMask, WaitContext& ctx) {
+  bool lockExclusiveImpl(uint32_t preconditionGoalMask, WaitContext& ctx) {
     uint32_t state = state_.load(std::memory_order_acquire);
     if (FOLLY_LIKELY(
             (state & (preconditionGoalMask | kMayDefer | kHasS)) == 0 &&
@@ -1057,7 +1053,7 @@ class SharedMutexImpl
   }
 
   template <class WaitContext>
-  non_atomic bool lockExclusiveImpl(
+  bool lockExclusiveImpl(
       uint32_t& state, uint32_t preconditionGoalMask, WaitContext& ctx) {
     while (true) {
       if (FOLLY_UNLIKELY((state & preconditionGoalMask) != 0) &&
@@ -1213,14 +1209,14 @@ class SharedMutexImpl
   // Wakes up waiters registered in state_ as appropriate, clearing the
   // awaiting bits for anybody that was awoken.  Tries to perform direct
   // single wakeup of an exclusive waiter if appropriate
-  non_atomic void wakeRegisteredWaiters(uint32_t& state, uint32_t wakeMask) {
+  void wakeRegisteredWaiters(uint32_t& state, uint32_t wakeMask) {
     if (FOLLY_UNLIKELY((state & wakeMask) != 0)) {
       wakeRegisteredWaitersImpl(state, wakeMask);
     }
   }
 
   [[FOLLY_ATTR_GNU_USED]]
-  non_atomic void wakeRegisteredWaitersImpl(uint32_t& state, uint32_t wakeMask) {
+  void wakeRegisteredWaitersImpl(uint32_t& state, uint32_t wakeMask) {
     // If there are multiple lock() pending only one of them will actually
     // get to wake up, so issuing futexWakeAll will make a thundering herd.
     // There's nothing stopping us from issuing futexWake(1) instead,
@@ -1406,6 +1402,7 @@ class SharedMutexImpl
 
   uint32_t unlockSharedInline() {
     uint32_t state = (state_ -= kIncrHasS);
+    fprintf(stderr, "STATE: %d\n", state);
     assert(
         (state & (kHasE | kBegunE | kMayDefer)) != 0 ||
         state < state + kIncrHasS);

@@ -189,3 +189,7 @@
 #else
 #define FOLLY_ATTR_CLANG_CORO_AWAIT_ELIDABLE_ARGUMENT
 #endif
+
+#define attr(attr) __attribute((__annotate__(#attr)))
+
+#define non_atomic attr(ltest_nonatomic)

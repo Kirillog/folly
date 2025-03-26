@@ -431,8 +431,11 @@ add_library(folly_base OBJECT
 )
 
 # Dependencies are written explicitly for simplicity
-target_compile_options(folly_base PRIVATE -fpass-plugin=/workspaces/LTest/build/codegen/libYieldPass.so)
-target_link_libraries(folly_base PRIVATE /workspaces/LTest/build/runtime/libruntime.so)
+
+set(LTEST_BUILD_PATH "$ENV{LTEST_BUILD_PATH}")
+
+target_compile_options(folly_base PRIVATE -fpass-plugin=${LTEST_BUILD_PATH}/codegen/libYieldPass.so)
+target_link_libraries(folly_base PRIVATE ${LTEST_BUILD_PATH}/runtime/libruntime.so)
 
 
 if (BUILD_SHARED_LIBS)

@@ -160,6 +160,7 @@ pthread_rwlock_t Read        728698     24us       101ns     7.28ms     194us
 
 #include <folly/Likely.h>
 #include <folly/synchronization/Lock.h>
+#include <folly/CppAttributes.h>
 
 namespace folly {
 
@@ -188,32 +189,40 @@ class RWSpinLock {
   RWSpinLock& operator=(RWSpinLock const&) = delete;
 
   // Lockable Concept
-  void lock() {
+  non_atomic int lock() {
     uint_fast32_t count = 0;
     while (!LIKELY(try_lock())) {
       if (++count > 1000) {
         std::this_thread::yield();
       }
     }
+    return 0;
   }
 
   // Writer is responsible for clearing up both the UPGRADED and WRITER bits.
-  void unlock() {
+  non_atomic int unlock() {
     static_assert(READER > WRITER + UPGRADED, "wrong bits!");
     bits_.fetch_and(~(WRITER | UPGRADED), std::memory_order_release);
+    return 0;
   }
 
   // SharedLockable Concept
-  void lock_shared() {
+  non_atomic int lock_shared() {
     uint_fast32_t count = 0;
     while (!LIKELY(try_lock_shared())) {
       if (++count > 1000) {
         std::this_thread::yield();
       }
     }
+    return 0;
   }
 
-  void unlock_shared() { bits_.fetch_add(-READER, std::memory_order_release); }
+  non_atomic int unlock_shared() { 
+    bits_.fetch_add(-READER, std::memory_order_release);
+    return 0;
+  }
+
+  void Reset() { bits_.store(0); }
 
   // Downgrade the lock from writer status to reader status.
   void unlock_and_lock_shared() {
