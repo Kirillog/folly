@@ -222,6 +222,10 @@ class RWSpinLock {
     return 0;
   }
 
+  void Release() {
+    bits_.store(0);
+  }
+
   void Reset() { bits_.store(0); }
 
   // Downgrade the lock from writer status to reader status.

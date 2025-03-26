@@ -440,6 +440,10 @@ class SharedMutexImpl
     return 0;
   }
 
+  void Release() {
+    state_.store(0);
+  }
+
   void Reset() {
     state_.store(0);
   }
