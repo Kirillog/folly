@@ -439,10 +439,11 @@ class SharedMutexImpl
   }
 
   non_atomic int lock() {
-    WaitForever ctx;
-    (void)lockExclusiveImpl(kHasSolo, ctx);
-    OwnershipTrackerBase::beginThreadOwnership();
-    annotateAcquired(annotate_rwlock_level::wrlock);
+    // fprintf(stderr, "+++++++++++++++++++++++++++++");
+    // WaitForever ctx;
+    // (void)lockExclusiveImpl(kHasSolo, ctx);
+    // OwnershipTrackerBase::beginThreadOwnership();
+    // annotateAcquired(annotate_rwlock_level::wrlock);
     return 0;
   }
 
@@ -478,14 +479,14 @@ class SharedMutexImpl
   }
 
   non_atomic int unlock() {
-    annotateReleased(annotate_rwlock_level::wrlock);
-    OwnershipTrackerBase::endThreadOwnership();
-    // It is possible that we have a left-over kWaitingNotS if the last
-    // unlock_shared() that let our matching lock() complete finished
-    // releasing before lock()'s futexWait went to sleep.  Clean it up now
-    auto state = (state_ &= ~(kWaitingNotS | kPrevDefer | kHasE));
-    assert((state & ~(kWaitingAny | kAnnotationCreated)) == 0);
-    wakeRegisteredWaiters(state, kWaitingE | kWaitingU | kWaitingS);
+    // annotateReleased(annotate_rwlock_level::wrlock);
+    // OwnershipTrackerBase::endThreadOwnership();
+    // // It is possible that we have a left-over kWaitingNotS if the last
+    // // unlock_shared() that let our matching lock() complete finished
+    // // releasing before lock()'s futexWait went to sleep.  Clean it up now
+    // auto state = (state_ &= ~(kWaitingNotS | kPrevDefer | kHasE));
+    // assert((state & ~(kWaitingAny | kAnnotationCreated)) == 0);
+    // wakeRegisteredWaiters(state, kWaitingE | kWaitingU | kWaitingS);
     return 0;
   }
 
@@ -1045,7 +1046,7 @@ class SharedMutexImpl
   // Performs an exclusive lock, waiting for state_ & waitMask to be
   // zero first
   template <class WaitContext>
-  bool lockExclusiveImpl(uint32_t preconditionGoalMask, WaitContext& ctx) {
+  non_atomic bool lockExclusiveImpl(uint32_t preconditionGoalMask, WaitContext& ctx) {
     uint32_t state = state_.load(std::memory_order_acquire);
     if (FOLLY_LIKELY(
             (state & (preconditionGoalMask | kMayDefer | kHasS)) == 0 &&
@@ -1057,7 +1058,7 @@ class SharedMutexImpl
   }
 
   template <class WaitContext>
-  bool lockExclusiveImpl(
+  non_atomic bool lockExclusiveImpl(
       uint32_t& state, uint32_t preconditionGoalMask, WaitContext& ctx) {
     while (true) {
       if (FOLLY_UNLIKELY((state & preconditionGoalMask) != 0) &&
@@ -1213,14 +1214,14 @@ class SharedMutexImpl
   // Wakes up waiters registered in state_ as appropriate, clearing the
   // awaiting bits for anybody that was awoken.  Tries to perform direct
   // single wakeup of an exclusive waiter if appropriate
-  void wakeRegisteredWaiters(uint32_t& state, uint32_t wakeMask) {
+  non_atomic void wakeRegisteredWaiters(uint32_t& state, uint32_t wakeMask) {
     if (FOLLY_UNLIKELY((state & wakeMask) != 0)) {
       wakeRegisteredWaitersImpl(state, wakeMask);
     }
   }
 
   [[FOLLY_ATTR_GNU_USED]]
-  void wakeRegisteredWaitersImpl(uint32_t& state, uint32_t wakeMask) {
+  non_atomic void wakeRegisteredWaitersImpl(uint32_t& state, uint32_t wakeMask) {
     // If there are multiple lock() pending only one of them will actually
     // get to wake up, so issuing futexWakeAll will make a thundering herd.
     // There's nothing stopping us from issuing futexWake(1) instead,

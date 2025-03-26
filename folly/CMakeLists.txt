@@ -28,8 +28,6 @@ install(
   ARCHIVE DESTINATION ${LIB_INSTALL_DIR}
 )
 
-add_subdirectory(debugging/exception_tracer)
-add_subdirectory(logging/example)
 
 if (PYTHON_EXTENSIONS)
   # Create tree of symbolic links in structure required for successful
