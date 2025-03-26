@@ -26,20 +26,12 @@
 #include <folly/portability/Config.h>
 #include <folly/synchronization/HazptrThreadPoolExecutor.h>
 
-#if !defined(_WIN32)
-#include <folly/experimental/symbolizer/SignalHandler.h> // @manual
-#endif
 #include <folly/portability/GFlags.h>
 
 FOLLY_GFLAGS_DEFINE_string(logging, "", "Logging configuration");
 
 namespace folly {
-const unsigned long kAllFatalSignals =
-#if !defined(_WIN32)
-    symbolizer::kAllFatalSignals;
-#else
-    0;
-#endif
+const unsigned long kAllFatalSignals = 0;
 
 InitOptions::InitOptions() noexcept : fatal_signals(kAllFatalSignals) {}
 
@@ -64,12 +56,6 @@ wrapped_abort() {
 #endif
 
 void initImpl(int* argc, char*** argv, InitOptions options) {
-#if !defined(_WIN32)
-  // Install the handler now, to trap errors received during startup.
-  // The callbacks, if any, can be installed later
-  folly::symbolizer::installFatalSignalHandler(options.fatal_signals);
-#endif
-
   // Indicate ProcessPhase::Regular and register handler to
   // indicate ProcessPhase::Exit.
   folly::set_process_phases();

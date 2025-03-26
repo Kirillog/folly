@@ -32,7 +32,6 @@
 
 #include <folly/Demangle.h>
 #include <folly/ScopeGuard.h>
-#include <folly/experimental/symbolizer/Symbolizer.h>
 #include <folly/lang/SafeAssert.h>
 #include <folly/portability/Config.h>
 #include <folly/portability/FmtCompile.h>
@@ -156,11 +155,11 @@ void singletonWarnDestroyInstanceLeak(
           .c_str());
 }
 
-void singletonPrintDestructionStackTrace(const TypeDescriptor& type) {
-  auto trace = symbolizer::getStackTraceStr();
-  LOG(ERROR) << "Singleton " << type.name() << " was released.\n"
-             << "Stacktrace:\n"
-             << (!trace.empty() ? trace : "(not available)");
+void singletonPrintDestructionStackTrace([[maybe_unused]] const TypeDescriptor& type) {
+  // auto trace = symbolizer::getStackTraceStr();
+  // LOG(ERROR) << "Singleton " << type.name() << " was released.\n"
+            //  << "Stacktrace:\n"
+            //  << (!trace.empty() ? trace : "(not available)");
 }
 
 [[noreturn]] void singletonThrowNullCreator(const std::type_info& type) {
