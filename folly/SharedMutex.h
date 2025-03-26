@@ -439,11 +439,10 @@ class SharedMutexImpl
   }
 
   non_atomic int lock() {
-    // fprintf(stderr, "+++++++++++++++++++++++++++++");
-    // WaitForever ctx;
-    // (void)lockExclusiveImpl(kHasSolo, ctx);
-    // OwnershipTrackerBase::beginThreadOwnership();
-    // annotateAcquired(annotate_rwlock_level::wrlock);
+    WaitForever ctx;
+    (void)lockExclusiveImpl(kHasSolo, ctx);
+    OwnershipTrackerBase::beginThreadOwnership();
+    annotateAcquired(annotate_rwlock_level::wrlock);
     return 0;
   }
 
@@ -479,14 +478,14 @@ class SharedMutexImpl
   }
 
   non_atomic int unlock() {
-    // annotateReleased(annotate_rwlock_level::wrlock);
-    // OwnershipTrackerBase::endThreadOwnership();
-    // // It is possible that we have a left-over kWaitingNotS if the last
-    // // unlock_shared() that let our matching lock() complete finished
-    // // releasing before lock()'s futexWait went to sleep.  Clean it up now
-    // auto state = (state_ &= ~(kWaitingNotS | kPrevDefer | kHasE));
-    // assert((state & ~(kWaitingAny | kAnnotationCreated)) == 0);
-    // wakeRegisteredWaiters(state, kWaitingE | kWaitingU | kWaitingS);
+    annotateReleased(annotate_rwlock_level::wrlock);
+    OwnershipTrackerBase::endThreadOwnership();
+    // It is possible that we have a left-over kWaitingNotS if the last
+    // unlock_shared() that let our matching lock() complete finished
+    // releasing before lock()'s futexWait went to sleep.  Clean it up now
+    auto state = (state_ &= ~(kWaitingNotS | kPrevDefer | kHasE));
+    assert((state & ~(kWaitingAny | kAnnotationCreated)) == 0);
+    wakeRegisteredWaiters(state, kWaitingE | kWaitingU | kWaitingS);
     return 0;
   }
 
