@@ -1406,7 +1406,6 @@ class SharedMutexImpl
 
   uint32_t unlockSharedInline() {
     uint32_t state = (state_ -= kIncrHasS);
-    fprintf(stderr, "STATE: %d\n", state);
     assert(
         (state & (kHasE | kBegunE | kMayDefer)) != 0 ||
         state < state + kIncrHasS);

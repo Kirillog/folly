@@ -202,7 +202,7 @@ class FlatCombining {
   ///   combining session that is checked at the beginning of each pass
   ///   on the request records (if 0, then kDefaultMaxops)
   explicit FlatCombining(
-      const bool dedicated = true,
+      const bool dedicated = false,
       const uint32_t numRecs = 0, // number of combining records
       const uint32_t maxOps = 0, // hint of max ops per combining session
       std::optional<std::string> dedicatedCombinerThreadName = std::nullopt)
